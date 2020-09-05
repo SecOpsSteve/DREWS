@@ -1,5 +1,7 @@
 # Domain Registration Early Warning System (DREWS)
 
+<span style="color:red"> *Attention: The domain list download fails, unfortunately WhoisDS no longer provide the source data that this project relys on.* </span>.
+
 ## Objective
 Brand impersonation, fraud and phishing pose prolific threats, even the biggest brands can be susceptible. A malicious actor could purchase a lookalike domain with no identity checks and use this domain to conduct business email compromise type campaigns.
 
