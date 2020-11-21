@@ -2,7 +2,7 @@
 # DREWS - Domain Registration Early Warning System
 # https://github.com/SecOpsSteve/DREWS
 # See README.md for further details
-appversion = '0.9 (MVP) Public'
+appversion = '1.0 (MVP) Public'
 ##########################################################
 
 import os, base64, re, json, urllib.request, urllib.parse
@@ -55,7 +55,7 @@ def grabber_extractor_func(url):
 	'''
 	Grabber Extractor, pass in url. Note the User-Agent, default python User-Agent is commonly blocked.
 	'''
-	req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+	req = Request(url, headers={'User-Agent':"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"})
 	with urlopen(req) as zipresp:
 		with ZipFile(BytesIO(zipresp.read())) as domzip:
 			with domzip.open('domain-names.txt') as domzipcontents:
@@ -126,7 +126,7 @@ for daynum in range(lookback_days,0,-1):
 	dl_date = (date.today() - timedelta(days=daynum)).strftime('%Y-%m-%d')
 	dl_name = dl_date + '.zip'
 	encodedname = str(base64.b64encode(dl_name.encode()), "utf-8")
-	url = 'https://whoisds.com/whois-database/newly-registered-domains/'+encodedname+'/nrd'
+	url = 'https://www.whoisdownload.com/download-panel/free-download-file/'+encodedname+'/nrd/home'
 	# Read runcheck, do if not already done
 	with open('runcheck', mode='r') as runcheck:
 		if not encodedname in runcheck.read():

@@ -1,23 +1,21 @@
 # Domain Registration Early Warning System (DREWS)
 
-*Attention: The domain list download fails, unfortunately WhoisDS no longer provide the source data used in this project.*
-
 ## Objective
-Brand impersonation, fraud and phishing pose prolific threats, even the biggest brands can be susceptible. A malicious actor could purchase a lookalike domain with no identity checks and use this domain to conduct business email compromise type campaigns.
+Brand impersonation, fraud and phishing are significant in the ever-evolving threat landscape, even the biggest brands can be susceptible. A malicious actor could purchase a lookalike/typosquat domain with no identity checks, it could then be used to facilitate a plethora of malicious activity that could be directed at your organisation, clients, third parties and the public.
 
 > *In 2018, business email compromise (BEC) accounted for 23% of cyber insurance claims received from Europe, the Middle East and Asia, according to statistics released by AIG.*
 
-DREWS is a means to identify unauthorised domain registrations that could facilitate brand impersonation, fraud or shadow IT. DREWS uses regular expressions to match results in Newly Registered Domain (NRD) lists and posts results to services such as Mattermost or Slack.
+DREWS is intended to provide a basic capability to identify unauthorised domain registrations that could pose a threat from a malicious actor or shadow IT etc. DREWS uses regular expressions to match results in Newly Registered Domain (NRD) lists and posts results to webhook capable services such as Mattermost or Slack (or to file).
 
-Reducing detection time enables an overall faster response, allowing responders to raise complaints with registrars or hosting providers in a timely fashion. Therefore disrupting the threat actors operations and reducing the campaign lifespan. Ultimately frustrating and imposing costs on the actor.
+The aim is to reduce the detection time, enabling responders to raise complaints with registrars or hosting providers in a timely fashion. Therefore disrupting the threat actors operations and reducing the campaign lifespan. Ultimately frustrating and imposing cost on the actor.
 
-*Many thanks to <a href="https://whoisds.com/newly-registered-domains" target="_blank">WhoisDS</a> for providing the data for free.*
+*Many thanks to <a href="https://www.whoisdownload.com/newly-registered-domains" target="_blank">WhoisDownload.com</a> for providing the data for free.*
 
 ## How it works
 
 * DREWS will iterate over *n* previous days. For each day/iteration;
 * It will read the *"runcheck"* file and skip the current iteration if previously completed, otherwise;
-* The day's NRD list is downloaded from <a href="https://whoisds.com/newly-registered-domains" target="_blank">WhoisDS</a>, extracted on-the-fly and stored in the *"domlist"* variable.
+* The day's NRD list is downloaded from <a href="https://www.whoisdownload.com/newly-registered-domains" target="_blank">WhoisDownload.com</a>, extracted on-the-fly and stored in the *"domlist"* variable.
 * Custom regular expressions are read in from *"regex_patterns.txt"* and are run against *"domlist"*.
 * Regular expression matches are stored in the *"search_results"* variable.
 * *"search_results"* is then passed into any enabled alert/output function.
@@ -35,7 +33,8 @@ Reducing detection time enables an overall faster response, allowing responders 
 
 ### Known Issues
 
-1. __<a href="https://whoisds.com/newly-registered-domains" target="_blank">WhoisDS</a> data does not include all TLDs.__
+1. __<a href="https://www.whoisdownload.com/newly-registered-domains" target="_blank">WhoisDownload.com</a> data does not include all TLDs.__
+1. Results are only as good your regex patterns.
 1. Download error handling, a failed NRD list download will result in a __badzip error__, it will exit but will try again next time.
 1. Posting to a webhook that is not available result in a hang/wait for timeout. File output will still function. 
 1. TheHive output has yet to be added.
@@ -50,29 +49,28 @@ Reducing detection time enables an overall faster response, allowing responders 
 
 ## Setup and Configuration
 
-1. Clone the repository.
-```
-git clone https://github.com/SecOpsSteve/DREWS.git
-```
-2. Edit __regex_patterns.txt__ and configure appropriate regular expressions (one regex per line), for example;
+##### 1. Clone the repository
+`git clone https://github.com/SecOpsSteve/DREWS.git`
+
+##### 2. Configure search patterns
+Edit __regex_patterns.txt__ and configure desired regular expressions (one regex per line), for example;
 ```
 g[o0]{2}gg?[li1]e
 ```
 Regular expressions can be built and tested with this example <a href="https://gchq.github.io/CyberChef/#recipe=Regular_expression%28'User%20defined','g%5Bo0%5D%7B2%7Dgg?%5Bli1%5De',true,true,false,false,false,false,'Highlight%20matches'%29&input=ZXhhbXBsZWcwMGdsZS5jb20KZXhhbXBsZWZha2Vnb29nbGVkb21haW4uY29tCg" target="_blank">CyberChef Recipe.</a> __Caution:__ Loose regex patterns are likely to cause erroneous matches and subsequent noisy alerts.
 
-3. Next, edit __DREWS.py__ and set the desired options.
+##### 3. Configure script option
+Next, edit __DREWS.py__ and set the desired options.
 ```
 lookback_days = 7                           # On first run, iterate over n previous days.
 txt_alert_enabled = True                    # Write results to 'YYYY-MM-DD_Results.txt'
-thehive_alert_enabled = False               # INOPOPERABLE - FUTURE FEATURE
-thehive_url = 'https://thehive.blah.io'     # INOPOPERABLE - FUTURE FEATURE
 webhook_alert_enabled = False               # Enable output to a configured webhook.
 webhook_url = 'https://mattermost.blah.io'  # Mattermost or Slack incoming webhook URL.
 ```
-4. Schedule __DREWS.py__ to run daily.
-```
-crontab -e
-```
+##### 4. Schedule
+Set a daily cronjob.
+`crontab -e`
+
 Add an entry to the crontab for __DREWS.py__. The following example is set to execute every day at 0800 hrs.
 ```
 |> Minute
@@ -85,7 +83,8 @@ m h d m d command
 ```
 *Optional: Direct output to __lastrun.txt__.*
 
-5. Test. It is recommended to test your regex patterns thoroughly, this <a href="https://gchq.github.io/CyberChef/#recipe=Regular_expression%28'User%20defined','g%5Bo0%5D%7B2%7Dgg?%5Bli1%5De',true,true,false,false,false,false,'Highlight%20matches'%29&input=ZXhhbXBsZWcwMGdsZS5jb20KZXhhbXBsZWZha2Vnb29nbGVkb21haW4uY29tCg" target="_blank">CyberChef Recipe</a> can help. Also use a test Slack/Mattermost channel to avoid flooding your ChatOps channel.
+##### 5. Test
+It is recommended to test your regex patterns thoroughly, this <a href="https://gchq.github.io/CyberChef/#recipe=Regular_expression%28'User%20defined','g%5Bo0%5D%7B2%7Dgg?%5Bli1%5De',true,true,false,false,false,false,'Highlight%20matches'%29&input=ZXhhbXBsZWcwMGdsZS5jb20KZXhhbXBsZWZha2Vnb29nbGVkb21haW4uY29tCg" target="_blank">CyberChef Recipe</a> can help. Also use a test Slack/Mattermost channel to avoid flooding your ChatOps channel.
 
 ## Manual Operation
 __DREWS.py__ can be run manually, output will appear similar to the following;
@@ -134,3 +133,4 @@ D-2 : 2020-05-19 	 Skipped: MjAyMC0wNS0xOS56aXA=
 D-1 : 2020-05-20 	 Skipped: MjAyMC0wNS0yMC56aXA=
 blah@blah:~/Projects/DREWS$ 
 ```
+[Go to top](#top)
