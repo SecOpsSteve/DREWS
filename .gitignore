@@ -1,5 +1,6 @@
 .DS_Store
 runcheck
 regex_patterns.txt
+config.py
 __pycache__
 *Results.txt
