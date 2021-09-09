@@ -1,4 +1,6 @@
-*.html
-*Results.txt
+.DS_Store
 runcheck
 regex_patterns.txt
+config
+*Results.txt
+lastrun.txt
