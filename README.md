@@ -25,11 +25,12 @@ The aim is to reduce the detection time, enabling responders to raise complaints
 ### Output Functions
 
 |Output			|Description											|Status|
-|:---			|:---													|:---|
-|__File__		|Output to file, 'YYYY-MM-DD_Results.txt'				|Tested, Reliable|
-|__Mattermost__	|Post to a Mattermost channel via an incoming webhook 	|Tested, Reliable|
-|__Slack__		|Post to a Slack channel via an incoming webhook		|Tested, Reliable|
-|__TheHive__	|Create an alert within TheHive							|Future Feature|
+|:---			|:---					     						|:---|
+|__File__		     |Output to file, 'YYYY-MM-DD_Results.txt'         			|Tested, Reliable|
+|__Mattermost__	|Post to a Mattermost channel via an incoming webhook       	|Tested, Reliable|
+|__Slack__		|Post to a Slack channel via an incoming webhook	          	|Tested, Reliable|
+|__Email__		|Send and email via SMTP open relay, authentication to be added	|Tested, Reliable|
+|__TheHive__	     |Create an alert within TheHive						     |Future Feature|
 
 ### Known Issues
 
@@ -45,29 +46,36 @@ The aim is to reduce the detection time, enabling responders to raise complaints
 * Internet access
 * <a href="https://mattermost.com/" target="_blank">Mattermost</a> configured to allow incoming webhooks, or;
 * <a href="https://slack.com/" target="_blank">Slack</a> configured to allow incoming webhooks, or;
+* An open SMTP relay, or;
 * Some other means of monitoring file creation, perhaps the Power Automate SFTP connector.
 
 ## Setup and Configuration
 
-##### 1. Clone the repository
+### 1. Clone the repository
 `git clone https://github.com/SecOpsSteve/DREWS.git`
 
-##### 2. Configure search patterns
+### 2. Configure search patterns
 Edit __regex_patterns.txt__ and configure desired regular expressions (one regex per line), for example;
 ```
 g[o0]{2}gg?[li1]e
 ```
 Regular expressions can be built and tested with this example <a href="https://gchq.github.io/CyberChef/#recipe=Regular_expression%28'User%20defined','g%5Bo0%5D%7B2%7Dgg?%5Bli1%5De',true,true,false,false,false,false,'Highlight%20matches'%29&input=ZXhhbXBsZWcwMGdsZS5jb20KZXhhbXBsZWZha2Vnb29nbGVkb21haW4uY29tCg" target="_blank">CyberChef Recipe.</a> __Caution:__ Loose regex patterns are likely to cause erroneous matches and subsequent noisy alerts.
 
-##### 3. Configure script option
-Next, edit __DREWS.py__ and set the desired options.
+### 3. Configure options
+Next, edit __config.py__ and set the desired options.
 ```
-lookback_days = 7                           # On first run, iterate over n previous days.
-txt_alert_enabled = True                    # Write results to 'YYYY-MM-DD_Results.txt'
-webhook_alert_enabled = False               # Enable output to a configured webhook.
-webhook_url = 'https://mattermost.blah.io'  # Mattermost or Slack incoming webhook URL.
+lookback_days = 7                            # On first run, iterate over n previous days.
+txt_alert_enabled = True                     # Write results to 'YYYY-MM-DD_Results.txt'
+thehive_alert_enabled = False                # NOT IN USE - FUTURE FEATURE
+thehive_url = 'https://thehive.blah.io'      # NOT IN USE - FUTURE FEATURE
+webhook_alert_enabled = False                # Enable output to a configured webhook.
+webhook_url = 'https://mattermost.blah.io'   # Mattermost or Slack incoming webhook URL.
+email_alert_enabled = False                  # Send reports via email.
+email_srv = 'smtp.blah.io'                   # SMTP Server/Relay
+email_from = 'no-reply@blah.io'              # From Address
+email_to = 'security@blah.io'                # To Address
 ```
-##### 4. Schedule
+### 4. Schedule
 Set a daily cronjob.
 `crontab -e`
 
@@ -83,7 +91,7 @@ m h d m d command
 ```
 *Optional: Direct output to __lastrun.txt__.*
 
-##### 5. Test
+### 5. Test
 It is recommended to test your regex patterns thoroughly, this <a href="https://gchq.github.io/CyberChef/#recipe=Regular_expression%28'User%20defined','g%5Bo0%5D%7B2%7Dgg?%5Bli1%5De',true,true,false,false,false,false,'Highlight%20matches'%29&input=ZXhhbXBsZWcwMGdsZS5jb20KZXhhbXBsZWZha2Vnb29nbGVkb21haW4uY29tCg" target="_blank">CyberChef Recipe</a> can help. Also use a test Slack/Mattermost channel to avoid flooding your ChatOps channel.
 
 ## Manual Operation

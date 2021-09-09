@@ -2,7 +2,7 @@
 # DREWS - Domain Registration Early Warning System
 # https://github.com/SecOpsSteve/DREWS
 # See README.md for further details
-appversion = '1.0 (MVP) Public'
+appversion = '1.1 (MVP) Public'
 ##########################################################
 
 import os, base64, re, json, urllib.request, urllib.parse
@@ -11,13 +11,20 @@ from io import BytesIO
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 from pathlib import Path
+import smtplib
+from email.message import EmailMessage
 
-lookback_days = 7                            # On first run, iterate over n previous days.
-txt_alert_enabled = True                     # Write results to 'YYYY-MM-DD_Results.txt'
-thehive_alert_enabled = False                # NOT IN USE - FUTURE FEATURE
-thehive_url = 'https://thehive.blah.io'      # NOT IN USE - FUTURE FEATURE
-webhook_alert_enabled = False                # Enable output to a configured webhook.
-webhook_url = 'https://mattermost.blah.io'   # Mattermost or Slack incoming webhook URL.
+import config
+lookback_days = config.lookback_days
+txt_alert_enabled = config.txt_alert_enabled
+thehive_alert_enabled = config.thehive_alert_enabled
+thehive_url = config.thehive_url
+webhook_alert_enabled = config.webhook_alert_enabled
+webhook_url = config.webhook_url
+email_alert_enabled = config.email_alert_enabled
+email_srv = config.email_srv
+email_from = config.email_from
+email_to = config.email_to
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -30,9 +37,7 @@ print('''
 ''''\n''Version',appversion,'\n')
 
 def runcheck_func(action,encodedname):
-	'''
-	runcheck_func is used to init/read/update the runcheck file. runcheck keeps track of previous downloads.
-	'''
+	#runcheck_func is used to init/read/update the runcheck file. runcheck keeps track of previous downloads.
 	if action == 'init':
 		try:
 			with open('runcheck',mode='r') as runcheck:
@@ -52,9 +57,7 @@ def runcheck_func(action,encodedname):
 		print('runcheck_func error')
 
 def grabber_extractor_func(url):
-	'''
-	Grabber Extractor, pass in url. Note the User-Agent, default python User-Agent is commonly blocked.
-	'''
+	#Grabber Extractor, pass in url. Note the User-Agent, default python User-Agent is commonly blocked.
 	req = Request(url, headers={'User-Agent':"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"})
 	with urlopen(req) as zipresp:
 		with ZipFile(BytesIO(zipresp.read())) as domzip:
@@ -75,44 +78,46 @@ def search_func(regex_patterns,data_in):
 	return search_results
 
 def txt_alert_func(list_input,dl_date):
-	'''
-	Results are written to 'YYYY-MM-DD_Results.txt'.
-	'''
-	if not list_input == []:
-		with open(dl_date+'_Results.txt', mode='w', encoding='utf-8') as txt_file:
-			for item in sorted(list_input):
-				txt_file.write(item+'\n')
+	#Results are written to 'YYYY-MM-DD_Results.txt'.
+	with open(dl_date+'_Results.txt', mode='w', encoding='utf-8') as txt_file:
+		for item in sorted(list_input):
+			txt_file.write(item+'\n')
 
 def thehive_alert_func(list_input,thehive_url):
-	'''
-	TODO Create an alert via The Hive API.
-	'''
-	if not list_input == []:
-		print('[!] INOPOPERABLE - Future Feature, only printing',thehive_url)
+	#TODO Create an alert via The Hive API.
+	print('[!] INOPOPERABLE - Future Feature, only printing',thehive_url)
 
 def webhook_alert_func(list_input,webhook_url):
-	'''
-	Post to Mattermost or Slack via incoming webhook.
-	'''
-	if not list_input == []:
-		for item in sorted(list_input):
-			data = json.dumps(
+	#Post to Mattermost or Slack via incoming webhook.
+	for item in sorted(list_input):
+		data = json.dumps(
+			{ 
+				"text": ":warning: @channel DREWS has detected a newly registered domain.",
+				"attachments": [
 				{ 
-					"text": ":warning: @channel DREWS has detected a newly registered domain.",
-					"attachments": [
-					{ 
-						"color": "#ff0000",
-						"author_name": "DREWS Detection",
-						"author_link": 'https://github.com/SecOpsSteve/DREWS',
-						"title": "Lookup in DomainTools",
-						"title_link": "https://whois.domaintools.com/"+item,
-						"text": "Domain: "+item
-					}
-				]
-			}
-			).encode('utf-8')
-			headers = {'Content-Type': 'application/json'}
-			urllib.request.urlopen(urllib.request.Request(webhook_url, data, headers))
+					"color": "#ff0000",
+					"author_name": "DREWS Detection",
+					"author_link": 'https://github.com/SecOpsSteve/DREWS',
+					"title": "Lookup in DomainTools",
+					"title_link": "https://whois.domaintools.com/"+item,
+					"text": "Domain: "+item
+				}
+			]
+		}
+		).encode('utf-8')
+		headers = {'Content-Type': 'application/json'}
+		urllib.request.urlopen(urllib.request.Request(webhook_url, data, headers))
+
+def email_alert_func(list_input,msg_srv,msg_from,msg_to,msg_sub):
+	#Send results via SMTP
+	msg = EmailMessage()
+	msg.set_content(f'Please investigate the following;\n\n{list_input}\n\n[!] False positives happen, tune your patterns if required.')
+	msg['Subject'] = msg_sub
+	msg['From'] = msg_from
+	msg['To'] = msg_to
+	s = smtplib.SMTP(msg_srv)
+	s.send_message(msg)
+	s.quit()
 
 # Read in regex_patterns.txt
 with open('regex_patterns.txt',mode='r') as regex_patterns:
@@ -135,12 +140,16 @@ for daynum in range(lookback_days,0,-1):
 			# Search patterns
 			search_results = search_func(regex_patterns,domlist)
 			# Output functions
-			if txt_alert_enabled:
-				txt_alert_func(search_results,dl_date)
-			if thehive_alert_enabled:
-				thehive_alert_func(search_results,thehive_url)
-			if webhook_alert_enabled:
-				webhook_alert_func(search_results,webhook_url)
+			if not search_results == []:
+				if txt_alert_enabled:
+					txt_alert_func(search_results,dl_date)
+				if thehive_alert_enabled:
+					thehive_alert_func(search_results,thehive_url)
+				if webhook_alert_enabled:
+					webhook_alert_func(search_results,webhook_url)
+				if email_alert_enabled:
+					email_sub = f'DREWS Alert {dl_date}'
+					email_alert_func(search_results,email_srv,email_from,email_to,email_sub)
 			print('D-' + str(daynum), ':', dl_date, '\t Domains:', len(domlist), '\t Results:', len(search_results))
 			runcheck_func('update',encodedname)
 		else:

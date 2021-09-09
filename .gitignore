@@ -1,4 +1,5 @@
-*.html
-*Results.txt
+.DS_Store
 runcheck
 regex_patterns.txt
+__pycache__
+*Results.txt
